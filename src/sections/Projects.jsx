@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+// import photo1 from "../assets/photo1.jpg"
+// import photo2 from "../assets/photo2.jpg"
+// import img1 from "../assets/img1.jpg"
+// import img2 from "../assets/img2.jpg"
+import { motion, AnimatePresence, useMotionValueEvent, useScroll } from "framer-motion"
 
 const useIsMobile = (query = "(max-width : 639px)") => {
     const [isMobile, setIsMobile] = useState(
@@ -36,12 +41,45 @@ export default function Projects(){
             bgColor: "bg-gradient-to-r from-purple-600 to-blue-600",
             image: isMobile ? photo2 : img2
         },
-        
-    ])
+    ], [isMobile]);
+
+    const {scrollYProgress} = useScroll({
+        target: sceneRef,
+        offset: ["start start", "end end"]
+    })
+    const thresholds = projects.map((_, i) => (i + 1)/projects.length)
+    const [activeIndex, setActiveIndex] = useState(0)
+
+    useMotionValueEvent(scrollYProgress, "change", (v) => {
+        const idx = thresholds.findIndex((t) => v <= t);
+        setActiveIndex(idx === -1 ? thresholds.length - 1 : idx)
+    })
+
+    const activeProject = projects[activeIndex]
 
     return(
-        <section id="projects" className="relative text-white"> 
+        <section id="projects" ref={sceneRef} className="relative text-white" style={{height: `${100*projects.length}vh`, backgroundColor: activeProject.bgColor, transition: "background-color 400ms ease"}}>
+            <div className="sticky top-0 h-screen flex flex-col items-center justify-center">
+                <h2 className={`text-3xl font-semibold z-10 text-center ${isMobile ? "mt-4" : "mt-8"}`}>My Work</h2>
 
+                <div className={`relative w-full flex-1 flex items-center justify-center ${isMobile ? "-mt-4" : ""}`}>
+                    {projects.map((project, idx) => (
+                        <div key={project.title} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ${activeIndex === idx ? "opacity-100 z-20" : "opacity-0 z-0 sm:z-10"}`} style={{width: "85%", maxWidth: "1200px"}}>
+                            <AnimatePresence mode="wait">
+                                {activeIndex === idx && (
+                                    <motion.h3 key={project.title} initial = {{opacity: 0, y: -30}} animate = {{opacity: 1, y: 0}} exit = {{opacity: 0, y: 30}} transition={{duration: 0.5, ease: "easeOut"}} className={`block text-center text-[clamp(2rem,6vw,5rem)] text-white/95 sm:absolute sm:-top-20 sm:left-[35%] lg:left-[-5%] sm:mb-0 italic font-semibold ${isMobile ? "-mt-24" : ""}`} style={{zIndex: 5, textAlign: isMobile ? "center" : "left"}}>
+                                        {project.title}
+                                    </motion.h3>
+                                )}
+                            </AnimatePresence>
+
+                            <div>
+                                <img src={project.image} alt={project.title} className="" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </section>
     )   
 }
